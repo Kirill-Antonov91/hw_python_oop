@@ -1,5 +1,5 @@
 """Программа Фитнес-трекер."""
-from dataclasses import dataclass
+from dataclasses import dataclass, asdict
 from typing import List
 from typing_extensions import ClassVar
 from typing_extensions import Final
@@ -16,22 +16,16 @@ class InfoMessage:
     calories: float
 
     TRAINING_MESSAGE = (
-        "Тип тренировки: {0}; "
-        "Длительность: {1:.3f} ч.; "
-        "Дистанция: {2:.3f} км; "
-        "Ср. скорость: {3:.3f} км/ч; "
-        "Потрачено ккал: {4:.3f}."
+        "Тип тренировки: {training_type}; "
+        "Длительность: {duration:.3f} ч.; "
+        "Дистанция: {distance:.3f} км; "
+        "Ср. скорость: {speed:.3f} км/ч; "
+        "Потрачено ккал: {calories:.3f}."
     )
 
     def get_message(self) -> str:
         """Получить сообщение о тренировке."""
-        return self.TRAINING_MESSAGE.format(
-            self.training_type,
-            self.duration,
-            self.distance,
-            self.speed,
-            self.calories,
-        )
+        return self.TRAINING_MESSAGE.format(**asdict(self))
 
 
 class Training:
@@ -70,7 +64,7 @@ class Training:
 
     def show_training_info(self) -> InfoMessage:
         """Вернуть информационное сообщение о выполненной тренировке."""
-        message: InfoMessage = InfoMessage(
+        message = InfoMessage(
             type(self).__name__,
             self.duration,
             self.get_distance(),
@@ -83,8 +77,8 @@ class Training:
 class Running(Training):
     """Тренировка: бег."""
 
-    CALORIES_MEAN_SPEED_MULTIPLIER: ClassVar[int] = 18
-    CALORIES_MEAN_SPEED_SHIFT: ClassVar[float] = 1.79
+    CALORIES_MEAN_SPEED_MULTIPLIER: Final[int] = 18
+    CALORIES_MEAN_SPEED_SHIFT: Final[float] = 1.79
 
     def get_spent_calories(self) -> float:
         """Метод для подсчета калорий в подклассе Running."""
@@ -103,8 +97,8 @@ class Running(Training):
 class SportsWalking(Training):
     """Тренировка: спортивная ходьба."""
 
-    CALORIES_MEAN_SPEED_MULTIPLIER_SPORTS_WALKING: ClassVar[float] = 0.035
-    CALORIES_MEAN_SPEED_SPORTS_WALKING: ClassVar[float] = 0.029
+    CALORIES_MEAN_SPEED_MULTIPLIER_SPORTS_WALKING: Final[float] = 0.035
+    CALORIES_MEAN_SPEED_SHIFT_SPORTS_WALKING: Final[float] = 0.029
     M_IN_SEC: Final[float] = 0.278
     SM_IN_M: Final[int] = 100
 
@@ -124,7 +118,7 @@ class SportsWalking(Training):
         calories_sports_walking = (
             self.CALORIES_MEAN_SPEED_MULTIPLIER_SPORTS_WALKING * self.weight
             + (mean_speed_m_in_sec**2 / height_in_m)
-            * self.CALORIES_MEAN_SPEED_SPORTS_WALKING
+            * self.CALORIES_MEAN_SPEED_SHIFT_SPORTS_WALKING
             * self.weight
         ) * (self.duration * self.M_IN_H)
         return calories_sports_walking
@@ -133,9 +127,9 @@ class SportsWalking(Training):
 class Swimming(Training):
     """Тренировка: плавание."""
 
-    LEN_STEP: ClassVar[float] = 1.38
-    CALORIES_MEAN_SPEED_MULTIPLIER_SWIMMING: ClassVar[float] = 1.1
-    CALORIES_MEAN_SPEED_SWIMMING: ClassVar[int] = 2
+    LEN_STEP = 1.38
+    CALORIES_MEAN_SPEED_SHIFT_SWIMMING: Final[float] = 1.1
+    CALORIES_MEAN_SPEED_MULTIPLIER_SWIMMING: Final[int] = 2
 
     def __init__(
         self,
@@ -160,11 +154,8 @@ class Swimming(Training):
     def get_spent_calories(self) -> float:
         """Метод для подсчета калорий в подклассе Swimming."""
         calories_swim = (
-            (
-                self.get_mean_speed()
-                + self.CALORIES_MEAN_SPEED_MULTIPLIER_SWIMMING
-            )
-            * self.CALORIES_MEAN_SPEED_SWIMMING
+            (self.get_mean_speed() + self.CALORIES_MEAN_SPEED_SHIFT_SWIMMING)
+            * self.CALORIES_MEAN_SPEED_MULTIPLIER_SWIMMING
             * self.weight
             * self.duration
         )
@@ -181,13 +172,12 @@ def read_package(workout_type: str, data: List[int]) -> Training:
     if workout_type in workout_type_training_cls_map:
         training_object = workout_type_training_cls_map[workout_type](*data)
         return training_object
-    else:
-        raise ValueError(f"Неизвестная тренировка {workout_type}")
+    raise ValueError(f"Неизвестная тренировка {workout_type}")
 
 
 def main(training: Training) -> None:
     """Главная функция."""
-    info: InfoMessage = training.show_training_info()
+    info = training.show_training_info()
     print(info.get_message())
 
 
